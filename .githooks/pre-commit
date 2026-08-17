@@ -1,0 +1,25 @@
+#!/bin/sh
+# Refuse a commit that touches more than one binary Unreal asset.
+#
+# .uasset/.umap do not merge and do not diff. The failure mode this guards is not
+# "two people edited one file" (LFS locking is advisory and nothing enforces it) —
+# it is a single bulk pass rewriting six Blueprint graphs at once, unreviewable.
+# One asset per commit keeps every binary change individually reviewable and revertable.
+#
+# Bulk import is the legitimate exception: git commit --no-verify
+#
+# Install (git-lfs owns post-checkout/post-commit/post-merge/pre-push, so we do not
+# repoint core.hooksPath — copy this one file instead):
+#   cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+n=$(git diff --cached --name-only --diff-filter=ACM | grep -cE '\.(uasset|umap)$')
+
+if [ "$n" -gt 1 ]; then
+    echo "refusing: $n binary assets staged in one commit."
+    echo "  .uasset/.umap are unmergeable and undiffable - commit them one at a time."
+    git diff --cached --name-only --diff-filter=ACM | grep -E '\.(uasset|umap)$' | sed 's/^/    /'
+    echo "  override with: git commit --no-verify"
+    exit 1
+fi
+
+exit 0
