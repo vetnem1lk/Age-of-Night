@@ -24,6 +24,9 @@ Plugins/**/Intermediate/
 Automation_*.sln
 Automation_*.slnx
 
+# Generated client config for the in-editor tool server: loopback endpoint, machine-specific
+/.mcp.json
+
 # OS
 Thumbs.db
 desktop.ini
