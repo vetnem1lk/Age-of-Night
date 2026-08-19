@@ -10,7 +10,10 @@
 # The one thing this cannot stop is the flag that disables it. That is inherent to git, and is why
 # the agent-layer hook keeps its own check for it - it runs before git does.
 
-staged=$(git diff --cached --name-only --diff-filter=ACM)
+# R is in the filter because rename detection is on by default: a commit made entirely of renames
+# reports every path as R, so filtering to ACM alone returns an empty list and every check below
+# passes vacuously. Moving assets in the Content Browser produces exactly that commit shape.
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
 
 # 1. The repository is public and holds code only. The working process lives on disk, untracked.
 leaked=$(printf '%s\n' "$staged" | grep -E '^(docs/|\.claude/|CLAUDE\.md$|\.mcp\.json$)')
