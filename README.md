@@ -23,6 +23,8 @@ systems are being built one milestone at a time. Nothing here plays as the game 
 - Unreal Engine **5.8.1**
 - Windows, with Visual Studio 2022 and its C++ desktop toolchain
 - **Git LFS** — required, not optional
+- Several licensed marketplace packs, which this repository does not carry — see *Marketplace
+  content* below
 
 ## Getting the source
 
@@ -33,6 +35,14 @@ cannot load the content:
 git lfs install
 git clone https://github.com/vetnem1lk/Age-of-Night.git
 ```
+
+### Marketplace content
+
+Some levels reference asset packs licensed from Fab. That licence covers use inside a packaged
+game, not redistribution as source assets, so the packs are deliberately untracked — they are
+listed in `.gitignore` under *Licensed marketplace content*. A clone therefore opens with those
+references missing until the same packs are installed from Fab into `Content/` under their
+original folder names. The project's own code and the first person template are unaffected.
 
 ## Building
 
@@ -51,14 +61,17 @@ git clone https://github.com/vetnem1lk/Age-of-Night.git
 ```
 Source/age_of_night/
   age_of_night{Character,GameMode,PlayerController,CameraManager}   base first person layer
+  AgeOfNight/         the game's own classes: game phase, and its tests
   Variant_Horror/     horror variant (template)
   Variant_Shooter/    shooter variant (template): weapons, AI, UI
 Content/              assets, tracked in Git LFS
 Config/               project configuration
 ```
 
-Every C++ gameplay class is `abstract`: the classes actually loaded at runtime are Blueprints in
-`Content/`, so a new C++ class needs a Blueprint subclass before a level can use it.
+A C++ class that needs Blueprint-set asset references — GameMode, PlayerController, Character — is
+`abstract`, and the class actually loaded at runtime is a Blueprint in `Content/`, so such a class
+needs a Blueprint subclass before a level can use it. Classes that reference no assets, like the
+GameState, are concrete and are used directly.
 
 The shooter variant's AI runs on StateTree rather than Behavior Trees, and input goes through
 Enhanced Input throughout.
