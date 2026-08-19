@@ -25,6 +25,8 @@ public class age_of_night : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] {
 			"age_of_night",
+			"age_of_night/AgeOfNight",
+			"age_of_night/AgeOfNight/Tests",
 			"age_of_night/Variant_Horror",
 			"age_of_night/Variant_Horror/UI",
 			"age_of_night/Variant_Shooter",

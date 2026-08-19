@@ -1,0 +1,35 @@
+#!/bin/sh
+# Refuse to push anything except main and feature branches, then hand over to git-lfs.
+#
+# The pre-rewrite history lives on refs/archive/*. It holds the agent configuration, the project
+# instructions and the design documents that were deliberately removed before this repository went
+# public, so publishing it would undo that decision in one command. Three layers guard it:
+# remote.origin.push is pinned to refs/heads/main, the agent-layer hook refuses the spellings it can
+# see, and this hook refuses whatever actually reaches git.
+#
+# git-lfs owns this hook by default and its invocation is preserved below - LFS verifies that every
+# tracked object exists on the server before the push. Note that `git lfs install` rewrites this
+# file and would drop the ref guard; re-install from .githooks afterwards.
+#
+# Install:
+#   cp .githooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+
+input=$(cat)
+
+bad=$(printf '%s\n' "$input" | awk 'NF {print $1}' \
+        | grep -vE '^(refs/heads/main$|refs/heads/feat/|refs/tags/v[0-9]|\(delete\)$)')
+
+if [ -n "$bad" ]; then
+    echo "refusing to push these refs:" >&2
+    printf '    %s\n' $bad >&2
+    echo "  only main, feat/* and version tags are publishable." >&2
+    echo "  refs/archive/* holds the pre-public history and must never leave this machine." >&2
+    exit 1
+fi
+
+command -v git-lfs >/dev/null 2>&1 || {
+    printf >&2 "\n%s\n\n" "This repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'pre-push' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks')."
+    exit 2
+}
+
+printf '%s\n' "$input" | git lfs pre-push "$@"

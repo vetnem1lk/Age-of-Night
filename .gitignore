@@ -24,7 +24,19 @@ Plugins/**/Intermediate/
 Automation_*.sln
 Automation_*.slnx
 
+# Generated client config for the in-editor tool server: loopback endpoint, machine-specific
+/.mcp.json
+
 # OS
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Licensed marketplace content - installed per machine, never redistributed.
+# These packs are licensed for use inside a packaged game, not for redistribution as source
+# assets in a public repository. Reinstall them from Fab on a new machine; the project will
+# not open without them.
+/Content/MC_Sample/
+/Content/Man/
+/Content/Modular_Rural_Cabin/
+/Content/Werewolf/
