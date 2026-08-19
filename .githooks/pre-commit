@@ -1,24 +1,49 @@
 #!/bin/sh
-# Refuse a commit that touches more than one binary Unreal asset.
+# Enforce the three commit rules that a machine can check, at the only choke point that cannot be
+# routed around: git itself. An agent-layer hook sees a command string and can be defeated by a
+# quoted wrapper, an alias, or a different tool; this runs whatever invoked git.
 #
-# .uasset/.umap do not merge and do not diff. The failure mode this guards is not
-# "two people edited one file" (LFS locking is advisory and nothing enforces it) —
-# it is a single bulk pass rewriting six Blueprint graphs at once, unreviewable.
-# One asset per commit keeps every binary change individually reviewable and revertable.
-#
-# Bulk import is the legitimate exception: git commit --no-verify
-#
-# Install (git-lfs owns post-checkout/post-commit/post-merge/pre-push, so we do not
-# repoint core.hooksPath — copy this one file instead):
+# Install (git-lfs owns post-checkout/post-commit/post-merge, and pre-push is chained by hand, so
+# core.hooksPath is deliberately not repointed - copy instead):
 #   cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#
+# The one thing this cannot stop is the flag that disables it. That is inherent to git, and is why
+# the agent-layer hook keeps its own check for it - it runs before git does.
 
-n=$(git diff --cached --name-only --diff-filter=ACM | grep -cE '\.(uasset|umap)$')
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+
+# 1. The repository is public and holds code only. The working process lives on disk, untracked.
+leaked=$(printf '%s\n' "$staged" | grep -E '^(docs/|\.claude/|CLAUDE\.md$|\.mcp\.json$)')
+if [ -n "$leaked" ]; then
+    echo "refusing: this commit would publish the working process." >&2
+    printf '    %s\n' $leaked >&2
+    echo "  docs/, .claude/, CLAUDE.md and .mcp.json stay local - see CLAUDE.md rule 10." >&2
+    exit 1
+fi
+
+# 2. Milestone work lives on a branch; main only ever receives merges.
+branch=$(git rev-parse --abbrev-ref HEAD)
+case "$branch" in
+    main|master)
+        echo "refusing: direct commit to '$branch'." >&2
+        echo "  branch first (feat/m0-phase-toggle), then merge - see CLAUDE.md > Working rules." >&2
+        exit 1
+        ;;
+esac
+
+# 3. One binary asset per commit.
+#
+# .uasset/.umap do not merge and do not diff. The failure mode this guards is not "two people
+# edited one file" (LFS locking is advisory and nothing enforces it) - it is a single bulk pass
+# rewriting six Blueprint graphs at once, unreviewable. One asset per commit keeps every binary
+# change individually reviewable and revertable.
+n=$(printf '%s\n' "$staged" | grep -cE '\.(uasset|umap)$')
 
 if [ "$n" -gt 1 ]; then
-    echo "refusing: $n binary assets staged in one commit."
-    echo "  .uasset/.umap are unmergeable and undiffable - commit them one at a time."
-    git diff --cached --name-only --diff-filter=ACM | grep -E '\.(uasset|umap)$' | sed 's/^/    /'
-    echo "  override with: git commit --no-verify"
+    echo "refusing: $n binary assets staged in one commit." >&2
+    echo "  .uasset/.umap are unmergeable and undiffable - commit them one at a time." >&2
+    printf '%s\n' "$staged" | grep -E '\.(uasset|umap)$' | sed 's/^/    /' >&2
+    echo "  a genuine bulk import is the human's call, from the input box." >&2
     exit 1
 fi
 
